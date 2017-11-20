@@ -42,48 +42,48 @@
 
     - name: untar the tarball
       sudo: true
-      command: "tar -xvf nagios-4.2.0.tar.gz chdir=/opt/ebin"
+      command: "tar -xvf nagios-4.2.0.tar.gz chdir=/opt"
 
  
 
     - name: configure
       sudo: true
-      command: " ./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd chdir=/opt/ebin/nagios-4.2.0" 
+      command: " ./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd chdir=/opt/nagios-4.2.0" 
 
     - name: make
       sudo: true
-      command: "make all chdir=/opt/ebin/nagios-4.2.0"
-      command: "make install chdir=/opt/ebin/nagios-4.2.0"
-      command: "make install-commandmode  chdir=/opt/ebin/nagios-4.2.0"
-      command: "make install-init chdir=/opt/ebin/nagios-4.2.0"
-      command: "make install-config chdir=/opt/ebin/nagios-4.2.0"
-      command: "/usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-available/nagios.conf chdir=/opt/ebin/nagios-4.2.0"
+      command: "make all chdir=/opt/nagios-4.2.0"
+      command: "make install chdir=/opt/nagios-4.2.0"
+      command: "make install-commandmode  chdir=/opt/nagios-4.2.0"
+      command: "make install-init chdir=/opt/nagios-4.2.0"
+      command: "make install-config chdir=/opt/nagios-4.2.0"
+      command: "/usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-available/nagios.conf chdir=/opt/nagios-4.2.0"
 
     - name: copying evenhandler directory to the nagios directory 
       sudo: true
-      command: "cp -R contrib/eventhandlers/ /usr/local/nagios/libexec/ chdir=/opt/ebin/nagios-4.2.0" 
-      command: "chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers chdir=/opt/ebin/nagios-4.2.0"
+      command: "cp -R contrib/eventhandlers/ /usr/local/nagios/libexec/ chdir=/opt/nagios-4.2.0" 
+      command: "chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers chdir=/opt/nagios-4.2.0"
 
     - name: Download nagios plugins
       sudo: yes
       get_url: >
-        dest=/opt/ebin
+        dest=/opt
         url=https://nagios-plugins.org/download/nagios-plugins-2.1.2.tar.gz
 
     - name: untar the tarball
       sudo: true
-      command: "tar -xzf nagios-plugins-2.1.2.tar.gz chdir=/opt/ebin"
+      command: "tar -xzf nagios-plugins-2.1.2.tar.gz chdir=/opt"
 
 
     - name: configure 
       sudo: true 
-      command: "./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl  chdir=/opt/ebin/nagios-plugins-2.1.2"
+      command: "./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl  chdir=/opt/nagios-plugins-2.1.2"
       
 
     - name: make
       sudo: true
-      command: "make chdir=/opt/ebin/nagios-plugins-2.1.2"
-      command: "make install chdir=/opt/ebin/nagios-plugins-2.1.2"
+      command: "make chdir=/opt/nagios-plugins-2.1.2"
+      command: "make install chdir=/opt/nagios-plugins-2.1.2"
 
  #   - name: editing default nagios configuration file
       #cfg_dir=/usr/local/nagios/etc/servers
