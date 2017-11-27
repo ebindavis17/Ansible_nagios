@@ -41,7 +41,7 @@
       user: >
         groups=nagcmd
         name=www-data
-- name: download nagios tarball
+    - name: download nagios tarball
       sudo: true
       get_url: >
         dest=/opt
@@ -75,7 +75,7 @@
       get_url: >
         dest=/opt
         url=https://nagios-plugins.org/download/nagios-plugins-2.1.2.tar.gz
-- name: untar the tarball
+    - name: untar the tarball
       sudo: true
       command: "tar -xzf nagios-plugins-2.1.2.tar.gz chdir=/opt"
 
