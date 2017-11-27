@@ -1,6 +1,6 @@
 # Ansible_nagios
 
-Ansible Playbook to install Nagios on Ubuntu machine
+Ansible Playbook to install Nagios on Ubuntu and Centos machine
 
 # How_it_works
 
