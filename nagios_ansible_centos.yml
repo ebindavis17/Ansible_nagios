@@ -1,0 +1,142 @@
+---
+
+- hosts: all
+  become: true
+  tasks:
+    - name: installing required dependencies
+      yum: state=present name={{ item }}
+      with_items:
+         - wget
+         - unzip
+         - httpd
+         - httpd-tools
+         - php
+         - gcc
+         - glibc
+         - glibc-common
+         - gd
+         - gd-devel
+         - make
+         - net-snmp
+
+
+    - name: create nagios group
+      sudo: true
+      group: >
+        gid=3000
+        name=nagios
+
+    - name: create nagcmd group
+      sudo: true
+      group: >
+        gid=3001
+        name=nagcmd
+
+    - name: create nagios user
+      sudo: true
+      user: >
+        uid=3000
+        group=nagios
+        groups=nagcmd
+        name=nagios
+        home=/usr/local/nagios
+        comment="Nagios Admin"
+        
+        
+      - name: add user www-data to nagcmd group
+      sudo: true
+      user: >
+        groups=nagcmd
+        name=www-data
+
+
+    - name: nagios directory creation
+      file: path=/root/nagios state=directory mode=777
+
+    - name: Download Nagios core
+      sudo: true
+      get_url:
+        url:  https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.3.4.tar.gz
+        dest: /root/nagios/nagios-4.3.4.tar.gz
+
+
+    - name: Download Nagios plugins
+      sudo: true
+      get_url:
+        url: https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+        dest: /root/nagios/nagios-plugins-2.2.1.tar.gz
+
+
+    - name: Extract Nagios core
+      sudo: true
+      unarchive:
+        src: /root/nagios/nagios-4.3.4.tar.gz
+        dest: /root/nagios
+        remote_src: yes
+
+    - name: Extract Nagios plugins
+      sudo: true
+      unarchive:
+        src: /root/nagios/nagios-plugins-2.2.1.tar.gz
+        dest: /root/nagios
+        remote_src: yes
+        
+        
+      - name: change the directory
+      sudo: true
+      command: "cd /root/nagios/nagios-4.3.4"
+
+    - name: configure nagios
+      sudo: true
+      command: "./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd chdir=/root/nagios/nagios-4.3.4"
+
+    - name:  compile and install all the binaries
+      sudo: true
+      command: "make all chdir=/root/nagios/nagios-4.3.4"
+      command: "make install chdir=/root/nagios/nagios-4.3.4"
+      command: "make install-init chdir=/root/nagios/nagios-4.3.4"
+      command: "make install-commandmode chdir=/root/nagios/nagios-4.3.4"
+      command: "make install-config chdir=/root/nagios/nagios-4.3.4"
+
+
+
+    - name: Install and Configure Web Interface for Nagios
+      become: true
+      command: "make install-webconf chdir=/root/nagios/nagios-4.3.4"
+
+
+      - name: httpd.service
+      sudo:  true
+      command: "systemctl start httpd.service"
+
+    - name: configure nagios plugins
+      sudo: true
+      command: "./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl chdir=/root/nagios/nagios-plugins-2.2.1"
+
+
+    - name: change directory
+      sudo: true
+      command: "cd /root/nagios/nagios-plugins-2.2.1"
+
+
+    - name: make
+      sudo: true
+      command: "make chdir=/root/nagios/nagios-plugins-2.2.1"
+      command: "make install chdir=/root/nagios/nagios-plugins-2.2.1"
+      command: "ln -s '/usr/lib/systemd/system/nsca.service' '/etc/systemd/system/multi-user.target.wants/nsca.service'"
+
+ #  - name: restart httpd
+ #    sudo: true
+ #    service: name=httpd enabled=yes
+
+#   - name: res
+ #    service: name=nagios state=restarted
+
+
+
+    - name: enable
+      sudo: true
+      command: "systemctl enable nagios"
+      command: "systemctl enable httpd"
+      command: "service nagios start"
+      command: "systemctl start nagios.service"
