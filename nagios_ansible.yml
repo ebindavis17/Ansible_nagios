@@ -3,21 +3,29 @@
 - hosts: all
   sudo: yes
   tasks:
+
     - name: Lamp stack installation
-      command: "sudo apt-get install wget build-essential apache2 php apache2-mod-php7.0 php-gd libgd-dev sendmail unzip"
+      sudo: yes
+      command: "sudo apt-get install -y wget build-essential apache2 php apache2-mod-php7.0 php-gd libgd-dev sendmail unzip"
+
+    - name: passlib installation
+      sudo: true
+      command: "apt install -y  python-pip"
+
+    - pip:
+        name: passlib
+
 
     - name: create nagios group
       sudo: true
       group: >
         gid=3000
         name=nagios
-
     - name: create nagcmd group
       sudo: true
       group: >
         gid=3001
         name=nagcmd
-
     - name: create nagios user
       sudo: true
       user: >
@@ -33,106 +41,106 @@
       user: >
         groups=nagcmd
         name=www-data
-
-    - name: download nagios tarball
+- name: download nagios tarball
       sudo: true
       get_url: >
-        dest=/opt/ebin
-        url=https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.2.0.tar.gz     
+        dest=/opt
+        url=https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.2.0.tar.gz
 
     - name: untar the tarball
       sudo: true
       command: "tar -xvf nagios-4.2.0.tar.gz chdir=/opt"
 
- 
+    - name: configure and make
+      run_once: true
+      command: sudo {{ item }}  chdir="/opt/nagios-4.2.0/"
+      with_items:
+        - ./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd
+        - make all
+        - make install
+        - make install-commandmode
+        - make install-init
+        - make install-config
+        - /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-available/nagios.conf
 
-    - name: configure
+
+    - name: copy eventhandler
+      command: "cp -r /opt/nagios-4.2.0/contrib/eventhandlers /usr/local/nagios/libexec/ "
+
+    - name: chown
+      command: "chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers"
+
+    - name: Install the Nagios Plugins
       sudo: true
-      command: " ./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd chdir=/opt/nagios-4.2.0" 
-
-    - name: make
-      sudo: true
-      command: "make all chdir=/opt/nagios-4.2.0"
-      command: "make install chdir=/opt/nagios-4.2.0"
-      command: "make install-commandmode  chdir=/opt/nagios-4.2.0"
-      command: "make install-init chdir=/opt/nagios-4.2.0"
-      command: "make install-config chdir=/opt/nagios-4.2.0"
-      command: "/usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-available/nagios.conf chdir=/opt/nagios-4.2.0"
-
-    - name: copying evenhandler directory to the nagios directory 
-      sudo: true
-      command: "cp -R contrib/eventhandlers/ /usr/local/nagios/libexec/ chdir=/opt/nagios-4.2.0" 
-      command: "chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers chdir=/opt/nagios-4.2.0"
-
-    - name: Download nagios plugins
-      sudo: yes
       get_url: >
         dest=/opt
         url=https://nagios-plugins.org/download/nagios-plugins-2.1.2.tar.gz
-
-    - name: untar the tarball
+- name: untar the tarball
       sudo: true
       command: "tar -xzf nagios-plugins-2.1.2.tar.gz chdir=/opt"
 
+    - name: configure and make
+      run_once: true
+      command: sudo {{ item }} chdir="/opt/nagios-plugins-2.1.2/"
+      with_items:
+        - ./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
+        - make
+        - make install
 
-    - name: configure 
-      sudo: true 
-      command: "./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl  chdir=/opt/nagios-plugins-2.1.2"
-      
-
-    - name: make
-      sudo: true
-      command: "make chdir=/opt/nagios-plugins-2.1.2"
-      command: "make install chdir=/opt/nagios-plugins-2.1.2"
-
- #   - name: editing default nagios configuration file
-      #cfg_dir=/usr/local/nagios/etc/servers
     - lineinfile:
         path: /usr/local/nagios/etc/nagios.cfg
         regexp: '#cfg_dir=/usr/local/nagios/etc/servers'
         line: 'cfg_dir=/usr/local/nagios/etc/servers'
- 
-    - name: directory 
+
+
+    - name: directory
+      run_once: true
       sudo: true
       command: "mkdir -p /usr/local/nagios/etc/servers"
 
-   
-  #  - lineinfile:
-   #     path: /usr/local/nagios/etc/objects/contacts.cfg
-    #    regexp: 'nagios@localhost'
-     #   line: 'ebin.davis@gmail.com'
-
+    - lineinfile:
+        path: /usr/local/nagios/etc/objects/contacts.cfg
+        regexp: '^(.*)nagios@localhost(.*)$'
+        line:  '\1ebin.davis@gmail.com\2'
+        backup: yes
+        backrefs: yes
 
     - name: enable apache modules
       sudo: true
-      command: "sudo a2enmod rewrite"     
+      command: "sudo a2enmod rewrite"
       command: "sudo a2enmod cgi"
-     # command: "sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin"
-   #   command: "sudo ln -s /etc/apache2/sites-available/nagios.conf /etc/apache2/sites-enabled/"
+
+
+    - name: Set password to nagios
+      htpasswd:
+        path: "/usr/local/nagios/etc/htpasswd.users"
+        name: nagiosadmin
+        password: "hello"
+        crypt_scheme: md5_crypt
+
+
+    - name: enable nagios virtual host
+      sudo: true
+      command: "sudo ln -s /etc/apache2/sites-available/nagios.conf /etc/apache2/sites-enabled/"
+
 
     - name: copy html file
       copy: src=/etc/init.d/skeleton  dest=/etc/init.d/nagios remote_src=yes directory_mode=yes
 
 
     - blockinfile:
-         dest: /etc/init.d/nagios 
+         dest: /etc/init.d/nagios
          block: |
            DESC="Nagios"
            NAME=nagios
            DAEMON=/usr/local/nagios/bin/$NAME
            DAEMON_ARGS="-d /usr/local/nagios/etc/nagios.cfg"
            PIDFILE=/usr/local/nagios/var/$NAME.lock
-    
-
-    - name: make executable
-      command: "chmod +x /etc/init.d/nagios"
-      command: " service apache restart"
-      command: " service nagios start"
-
 
     - name: nagios service
       sudo: true
       command: "touch /etc/systemd/system/nagios.service"
+
 
     - blockinfile:
          dest: /etc/systemd/system/nagios.service
@@ -140,30 +148,24 @@
             [Unit]
             Description=Nagios
             BindTo=network.target
-
-
             [Install]
             WantedBy=multi-user.target
-
             [Service]
             User=nagios
             Group=nagios
             Type=simple
-            ExecStart=/usr/local/nagios/bin/nagios /usr/local/nagios/etc/nagios.cfg   
-              
+            ExecStart=/usr/local/nagios/bin/nagios /usr/local/nagios/etc/nagios.cfg
+
 
     - name: nagios service enabling
       sudo: true
       command: " systemctl enable /etc/systemd/system/nagios.service"
+
+
+    - name: make executable
+      command: "chmod +x /etc/init.d/nagios"
+      command: " service apache restart"
+      command: " service nagios start"
+
+
       
-
-
-    - name: restart apache
-      sudo: true
-      service: name=apache2 state=restarted
-
-    - name: restart nagios
-      sudo: true
-      service: name=nagios state=restarted 
-     # notify: restart apache2
-   
