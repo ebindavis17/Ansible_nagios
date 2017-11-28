@@ -86,17 +86,17 @@
       sudo: true
       command: "cd /root/nagios/nagios-4.3.4"
 
-    - name: configure nagios
-      sudo: true
-      command: "./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd chdir=/root/nagios/nagios-4.3.4"
-
-    - name:  compile and install all the binaries
-      sudo: true
-      command: "make all chdir=/root/nagios/nagios-4.3.4"
-      command: "make install chdir=/root/nagios/nagios-4.3.4"
-      command: "make install-init chdir=/root/nagios/nagios-4.3.4"
-      command: "make install-commandmode chdir=/root/nagios/nagios-4.3.4"
-      command: "make install-config chdir=/root/nagios/nagios-4.3.4"
+    
+    - name:  Configure,compile and install all the binaries
+      run_once: true
+      command: sudo {{ item }}  chdir="/opt/nagios-4.2.0/"
+      with_items:
+         - ./configure --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd
+         - make all chdir=/root/nagios/nagios-4.3.4
+         - make install chdir=/root/nagios/nagios-4.3.4
+         - make install-init chdir=/root/nagios/nagios-4.3.4
+         - make install-commandmode chdir=/root/nagios/nagios-4.3.4
+         - make install-config chdir=/root/nagios/nagios-4.3.4
 
 
 
@@ -120,20 +120,30 @@
 
 
     - name: make
-      sudo: true
-      command: "make chdir=/root/nagios/nagios-plugins-2.2.1"
-      command: "make install chdir=/root/nagios/nagios-plugins-2.2.1"
-      command: "ln -s '/usr/lib/systemd/system/nsca.service' '/etc/systemd/system/multi-user.target.wants/nsca.service'"
-
- #  - name: restart httpd
- #    sudo: true
- #    service: name=httpd enabled=yes
-
-#   - name: res
- #    service: name=nagios state=restarted
+      run_once: true
+      command: sudo {{ item }}  chdir="/opt/nagios-4.2.0/"
+      with_items:
+         - make chdir=/root/nagios/nagios-plugins-2.2.1
+         - make install chdir=/root/nagios/nagios-plugins-2.2.1
+         
+    - name: 
+      command:"ln -s '/usr/lib/systemd/system/nsca.service' '/etc/systemd/system/multi-user.target.wants/nsca.service'"
 
 
-
+    - lineinfile:
+        path: /usr/local/nagios/etc/objects/contacts.cfg
+        regexp: '^(.*)nagios@localhost(.*)$'
+        line:  '\1ebin.davis@gmail.com\2'
+        backup: yes
+        backrefs: yes
+     
+    - name: Set password to nagios
+      htpasswd:
+        path: "/usr/local/nagios/etc/htpasswd.users"
+        name: nagiosadmin
+        password: "hello"
+        crypt_scheme: md5_crypt 
+     
     - name: enable
       sudo: true
       command: "systemctl enable nagios"
