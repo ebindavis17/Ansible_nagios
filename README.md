@@ -4,20 +4,20 @@ Ansible Playbook to install Nagios on Ubuntu and Centos machine
 
 # How_it_works
 
-*Installing the prerequisites
+* Installing the prerequisites
 
-*User and group configuration
+* User and group configuration
 
-*Installing Nagios
+* Installing Nagios
 
-*Compile Nagios
+* Compile Nagios
 
-*Install the Nagios Plugins
+* Install the Nagios Plugins
 
-*Configure Nagios
+* Configure Nagios
 
-*Configuring Apache
+* Configuring Apache
 
-*Enable the Nagios virtualhost
+* Enable the Nagios virtualhost
 
-*Start Apache and Nagios
+* Start Apache and Nagios
